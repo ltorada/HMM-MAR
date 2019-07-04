@@ -35,7 +35,7 @@ ylabel('p')
 xlabel('Time')
 ```
 
-## Modifications with respect to the only-HMM version of OHBA HMM-MAR:
+## Modifications with respect to the only-HMM version of OHBA HMM-MAR
 
 ### hmmtrain.m
 hsmm version of the Viterbi used if options.hsmm was set to 1.
