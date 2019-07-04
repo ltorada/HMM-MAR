@@ -1,4 +1,4 @@
-function [Gamma,Gammasum,Xi,LL,B] = hsinference(data,T,hmm,residuals,options,XX)
+function [hmm,Gamma,Gammasum,Xi,LL,B] = hsinference(data,T,hmm,residuals,options,XX)
 %
 % inference engine for HMMs.
 %
@@ -153,8 +153,29 @@ if hmm.train.useParallel==1 && N>1
             end
             XXt = XX(slicer + s0 - order,:); 
             if isnan(C(t,1))
-                [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:));
-            else
+                
+                % ----------------------------------------------------------- %
+                if ~isfield(hmm.train, 'hsmm')
+                    %disp( " ###### Going for the HMM FB ###### " )
+                    [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:),in);
+                elseif hmm.train.hsmm == 0
+                    %disp( " ###### Going for the HMM FB ###### " )
+                    [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:),in);
+                else
+                    % HSMM FB
+                    L = obslike([],hmm,residuals,XX,hmm.cache);
+                    Bt = L;
+                    %nLL = -log(L);
+                    %[gammat, xit, hmm] = maxM_newd_vectorized_FB(hmm, nLL);
+                    %disp( " ###### Going for the HSMM FB ###### " )
+                    [gammat, xit, hmm] = wrapped_FB(hmm, L);
+                    
+                    %test_isposterior;
+                    %test_sameFBoutput;
+                end
+                % ----------------------------------------------------------- %
+                [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:),in);
+                else
                 gammat = zeros(length(slicer),K);
                 if t==order+1, gammat(1,:) = C(slicer(1),:); end
                 xit = zeros(length(slicer)-1, K^2);
@@ -188,7 +209,7 @@ if hmm.train.useParallel==1 && N>1
     
 else
     
-    for in = 1:N % this is exactly the same than the code above but changing parfor by for
+    for in=1:N % this is exactly the same than the code above but changing parfor by for
         Bt = [];  
         t0 = sum(T(1:in-1)); s0 = t0 - order*(in-1);
         if order>0
@@ -216,8 +237,41 @@ else
             end
             XXt = XX(slicer + s0 - order,:);
             if isnan(C(t,1))
-                [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:));
-                if any(isnan(gammat(:)))
+                
+                %subplot_counter = 2;
+                %subplot(2,4,1)
+                %plot(1/hmm.train.M * ones(hmm.train.M,hmm.K) )
+                
+                % ----------------------------------------------------------- %
+                
+                if ~isfield(hmm.train, "hsmm")
+                    %disp( " ###### Going for the HMM FB ###### " )
+                    [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:),in);
+                elseif hmm.train.hsmm == 0
+                    %disp( " ###### Going for the HMM FB ###### " )
+                    [gammat,xit,Bt] = nodecluster(XXt,K,hmm,R(slicer,:),in);
+                else
+                    %disp( " ###### Going for the HSMM FB ###### " )
+                    % HSMM FB
+                    L = obslike([],hmm,residuals,XX,hmm.cache);
+                    Bt = L;
+                    %nLL = -log(L);
+                    
+                    %[gammat, xit, hmm] = maxM_newd_vectorized_FB_V2(hmm, -log(L));
+                    [gammat, xit, hmm] = wrapped_FB(hmm, L);  
+
+                    %test_isposterior;
+                    
+                    %subplot(2,4,subplot_counter)
+                    
+                    
+                    %subplot_counter = subplot_counter + 1;
+                    
+                    %test_sameFBoutput;
+                end
+               % ----------------------------------------------------------- %
+               
+               if any(isnan(gammat(:)))
                     error('State time course inference returned NaN - Out of precision?')
                 end
             else
@@ -258,30 +312,11 @@ Gamma = cell2mat(Gamma);
 Xi = cell2mat(Xi);
 if n_argout>=5, B  = cell2mat(B); end
 
-% orthogonalise = 1; 
-% Gamma0 = Gamma; 
-% if orthogonalise && hmm.train.tuda
-%     T = length(Gamma) / length(T) * ones(length(T),1); 
-%     Gamma = reshape(Gamma,[T(1) length(T) size(Gamma,2) ]);
-%     Y = reshape(residuals(:,end),[T(1) length(T)]);
-%     for t = 1:T(1)
-%        y = Y(t,:)'; 
-%        for k = 1:size(Gamma,3)
-%            x = Gamma(t,:,k)';
-%            b = y \ x;
-%            Gamma(t,:,k) = Gamma(t,:,k) - (y * b)';
-%        end
-%     end
-%     Gamma = reshape(Gamma,[T(1)*length(T) size(Gamma,3) ]);
-%     Gamma = rdiv(Gamma,sum(Gamma,2));
-%     Gamma = Gamma - min(Gamma(:));
-%     Gamma = rdiv(Gamma,sum(Gamma,2));
-% end
 
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [Gamma,Xi,L] = nodecluster(XX,K,hmm,residuals)
+function [Gamma,Xi,L] = nodecluster(XX,K,hmm,residuals,n)
 % inference using normal foward backward propagation
 
 order = hmm.train.maxorder;
@@ -342,5 +377,6 @@ for i = 1+order:T-1
     t = P.*( alpha(i,:)' * (beta(i+1,:).*L(i+1,:)));
     Xi(i-order,:) = t(:)'/sum(t(:));
 end
+
 
 end

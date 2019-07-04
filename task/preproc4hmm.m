@@ -1,4 +1,4 @@
-function [X,Y,T,options,A,R2_pca,pca_opt,features] = preproc4hmm(X,Y,T,options)
+function [X,Y,T,options,R2_pca,pca_opt,features] = preproc4hmm(X,Y,T,options)
 % Prepare data to run TUDA
 
 if length(size(X))==3 % 1st dim, time; 2nd dim, trials; 3rd dim, channels
@@ -24,10 +24,8 @@ end
 % options relative to the regression setting
 if ~isfield(options,'Nfeatures'), Nfeatures = p;
 else, Nfeatures = options.Nfeatures; end
-if ~isfield(options,'standardise'), standardise = 0;
+if ~isfield(options,'standardise'), standardise = 1;
 else, standardise = options.standardise; end
-if ~isfield(options,'demeanstim'), demeanstim = 1;
-else, demeanstim = options.demeanstim; end
 if ~isfield(options,'onpower'), onpower = 0;
 else, onpower = options.onpower; end
 if ~isfield(options,'embeddedlags'), embeddedlags = 0;
@@ -43,9 +41,6 @@ if ~isfield(options,'parallel_trials'), parallel_trials = all(T==T(1));
 else, parallel_trials = options.parallel_trials; end
 if ~isfield(options,'pca'), pca_opt = 0;
 else, pca_opt = options.pca; end
-if ~isfield(options,'A'), A = [];
-else, A = options.A; end
-
 if isfield(options,'downsample') && options.downsample~=0
     warning('Downsampling is not possible for TUDA')
 end
@@ -80,22 +75,16 @@ options.pca = 0; % it is done here
 options.standardise = 0; % it is done here
 options.onpower = 0; % it is done here
 options.detrend = 0; % it is done here
-options.filter = []; % it is done here
-options.downsample = 0; % it is done here 
+options.filter = []; 
+options.downsample = 0; 
 options.dropstates = 0;
 
 options.inittype = 'HMM-MAR';
 if isfield(options,'econ_embed'), options = rmfield(options,'econ_embed'); end
 if isfield(options,'Nfeatures'), options = rmfield(options,'Nfeatures'); end
-if isfield(options,'demeanstim'), options = rmfield(options,'demeanstim'); end
-% Set a high prior for the initial probabilities because otherwise the
-% model is biased to have the first time point of each trial to be assigned
-% to just one state.
-if ~isfield(options,'PriorWeightingPi'), options.PriorWeightingPi = length(T); end
-if ~isfield(options,'DirichletDiag'), options.DirichletDiag = 100; end
 
 do_embedding = length(embeddedlags)>1;
-do_pca = ~isempty(A) || length(pca_opt)>1 || (pca_opt>0 && pca_opt<p);
+do_pca = length(pca_opt)>1 || (pca_opt>0 && pca_opt<p);
 
 if ~do_embedding && econ_embed
     econ_embed = 0;
@@ -114,28 +103,14 @@ if size(Y,1) == N % one value for the entire trial
     for n = 1:N
         Y(sum(T(1:n-1)) + (1:T(n)),:) = repmat(Ytmp(n,:),T(n),1);
     end; clear Ytmp
-    %Y = Y + 1e-6 * repmat(std(Y),size(Y,1),1) .* randn(size(Y)) ;
+    Y = Y + 1e-6 * repmat(std(Y),size(Y,1),1) .* randn(size(Y)) ;
 end
 
-if q == 1 && length(unique(Y))==2
-   if ~(ismember(-1,unique(Y)) && ismember(+1,unique(Y)))
-       warning('Seems this is binary classification, transforming stimulus to have elements (-1,+1)')
-       v = unique(Y); 
-       Y(Y==v(1)) = -1; Y(Y==v(2)) = +1; 
-   end
-end
 
 % Demean stimulus
-if demeanstim
-    Y = bsxfun(@minus,Y,mean(Y));
-end
-% Add noise, to avoid numerical problems 
-if add_noise > 0
-    if add_noise == 1
-        Y = Y + 1e-5 * randn(size(Y)) .* repmat(std(Y),size(Y,1),1);
-    else
-        Y = Y + add_noise * randn(size(Y)) .* repmat(std(Y),size(Y,1),1);
-    end
+Y = bsxfun(@minus,Y,mean(Y));
+if add_noise % this avoids numerical problems 
+   Y = Y + 1e-4 * randn(size(Y)); 
 end
 % Filtering
 if ~isempty(filter)
@@ -146,10 +121,6 @@ if detrend
     X = detrenddata(X,T);
 end
 % Standardise data
-if standardise
-   warning(['You have set standardise=1, so each channel and trial will be standardized. ' ...
-       'This will probably result in a loss of information in terms of how each stimulus is processed'])
-end
 X = standardisedata(X,T,standardise);
 
 % adjust dimension of Y according to embedding
@@ -211,16 +182,13 @@ if econ_embed
     end
     
     % do SVD
-    if isempty(A)
-        [A,e,~] = svd(C);
-        e = diag(e);
-        e = cumsum(e)/sum(e);
-        p = num_comp_pca(e,pca_opt);
-        A = A(:,1:p);
-        R2_pca = e(p);
-    else
-        R2_pca = []; p = size(A,2);
-    end
+    [A,e,~] = svd(C);
+    e = diag(e);
+    e = cumsum(e)/sum(e);
+    p = num_comp_pca(e,pca_opt);
+    A = A(:,1:p);
+    R2_pca = e(p);
+    
     % eigendecompose subject by subject
     Xtmp = X; Ttmp = T;
     T = T-emforw-emback;
@@ -236,7 +204,7 @@ if econ_embed
         Xn = Xn - repmat(mean(Xn),size(Xn,1),1); % must center
         X(t,:) = Xn * A;
     end
-        
+    
 else
     
     if do_embedding
@@ -246,18 +214,12 @@ else
         msg = '';
     end
     if do_pca
-        if isempty(A)
-            [A,X,e] = pca(X);
-            e = cumsum(e)/sum(e);
-            p = num_comp_pca(e,pca_opt);
-            R2_pca = e(p);
-            X = X(:,1:p);
-            A = A(:,1:p);
-            fprintf('Working in PCA %s space, with %d components. \n',msg,p)
-        else
-            X = bsxfun(@minus,X,mean(X));   
-            X = X * A; 
-        end
+        [~,X,e] = pca(X);
+        e = cumsum(e)/sum(e);
+        p = num_comp_pca(e,pca_opt);
+        R2_pca = e(p);
+        X = X(:,1:p);
+        fprintf('Working in PCA %s space, with %d components. \n',msg,p)
     else
         R2_pca = 1;
     end

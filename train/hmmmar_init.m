@@ -13,6 +13,7 @@ function [Gamma,fehist] = hmmmar_init(data,T,options,Sind)
 %
 % Author: Diego Vidaurre, University of Oxford
 
+
 if ~isfield(options,'maxorder')
     [~,order] = formorders(options.order,options.orderoffset,options.timelag,options.exptimelag);
     options.maxorder = order; 
@@ -81,7 +82,7 @@ data.C = data.C(:,1:options.K);
 % helps the inference not get stuck in a local minimum. options.DirichletDiag is
 % then used inside hmmtrain when computing the free energy
 options.Gamma = initGamma_random(T-options.maxorder,options.K,10000,...
-    options.Pstructure,options.Pistructure);
+    options.Pstructure,options.Pistructure, options);
 hmm = struct('train',struct());
 hmm.K = options.K;
 hmm.train = options;

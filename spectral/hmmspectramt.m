@@ -42,7 +42,6 @@ if ~isfield(options,'order') && ~isfield(options,'embeddedlags')
         'these need to be specified too here'])
 end
 
-if isfield(options,'Gamma'), options = rmfield(options,'Gamma'); end
 if ~isfield(options,'order'), order = 0; options.order = 0;
 else, order = options.order; 
 end

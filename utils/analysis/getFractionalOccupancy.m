@@ -9,8 +9,7 @@ function [FO,ntrials] = getFractionalOccupancy (Gamma,T,options,dim,alignment)
 % (default, dim=2)
 % 
 % The parameter 'options' must be the same than the one supplied to the
-% hmmmar function for training. The structure hmm.train can also be
-% supplied
+% hmmmar function for training. 
 % 
 % If dim==1, how is the across-time average defined when trials have not
 % the same length? The trials can be aligned in two different ways: such
@@ -59,13 +58,7 @@ if isfield(options,'downsample') && options.downsample>0
     r = (options.downsample/options.Fs);
 end
 
-if ~isfield(options,'order') && ~isfield(options,'embeddedlags')
-   options.order = (sum(T) - size(Gamma,1)) / length(T);
-end
-
-if isfield(options,'tuda') && options.tuda
-    T = ceil(r * T);
-elseif isfield(options,'order') && options.order > 0
+if isfield(options,'order') && options.order > 0
     T = ceil(r * T);
     T = T - options.order; 
 elseif isfield(options,'embeddedlags') && length(options.embeddedlags) > 1

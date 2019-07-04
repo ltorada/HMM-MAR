@@ -123,7 +123,6 @@ if ~isfield(options,'behaviour'), options.behaviour = []; end
 if ~isempty(options.behaviour), options.tudamonitoring = 1;
 elseif ~isfield(options,'tudamonitoring'), options.tudamonitoring = 0;
 end
-if ~isfield(options,'tuda'), options.tuda = 1; end
 if options.tudamonitoring && stochastic_learning
    error('Stochastic learning is not currently compatible with TUDA monitoring options') 
 end
@@ -154,7 +153,7 @@ end
 if ~isfield(options,'Pistructure')
     options.Pistructure = true(1,options.K);
 else
-    if length(options.Pistructure) ~= options.K 
+    if length(options.Pistructure) ~=options.K 
         error('The dimensions of options.Pistructure are incorrect')
     end
     options.Pistructure = (options.Pistructure~=0);
@@ -251,16 +250,12 @@ if ~isfield(options,'DirichletDiag')
         if iscell(T), sumT = sum(cell2mat(T));
         else, sumT = sum(T);
         end
-        %options.DirichletDiag = sumT/5;
-        options.DirichletDiag = 100;
-        warning(['With options.order > 0, you might want to specify options.DirichletDiag ' ...
-            'to a larger value if your state time courses are too volatile'])
+        options.DirichletDiag = sumT/5;
     else
         options.DirichletDiag = 10;
     end
 end
-if ~isfield(options,'PriorWeightingP'), options.PriorWeightingP = 1; end
-if ~isfield(options,'PriorWeightingPi'), options.PriorWeightingPi = 1; end
+if ~isfield(options,'PriorWeighting'), options.PriorWeighting = 1; end
 
 % Some more hmm model options unrelated to the observational model
 if ~isfield(options,'repetitions'), options.repetitions = 1; end

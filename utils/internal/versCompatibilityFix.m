@@ -36,11 +36,8 @@ end
 if ~isfield(hmm.train,'Pistructure')
     hmm.train.Pistructure = true(1,hmm.K);
 end
-if ~isfield(hmm.train,'PriorWeightingP')
-    hmm.train.PriorWeightingP = 1;
-end
-if ~isfield(hmm.train,'PriorWeightingPi')
-    hmm.train.PriorWeightingPi = 1;
+if ~isfield(hmm.train,'PriorWeighting')
+    hmm.train.PriorWeighting = 1;
 end
 if ~isfield(hmm.train,'firsteigv')
     hmm.train.firsteigv = 0;

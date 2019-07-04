@@ -23,6 +23,7 @@ Q = 1;
 N = length(T); K = hmm.K;
 [~,order] = formorders(hmm.train.order,hmm.train.orderoffset,hmm.train.timelag,hmm.train.exptimelag);
 
+
 if isempty(Xi)
     Xi = zeros(hmm.K);
     for n = 1:N
@@ -52,7 +53,9 @@ if length(size(Xi))==3, Xi = permute(sum(Xi),[2 3 1]); end
 %     hmm.P = zeros(K,K);
 % end
 
+
 hmm.Dir2d_alpha = Xi + hmm.prior.Dir2d_alpha;
+
 hmm.P = zeros(K,K);
 for i = 1:Q
     for j = 1:K
@@ -64,7 +67,27 @@ for i = 1:Q
         hmm.P(j,:,i) = hmm.P(j,:,i) ./ sum(hmm.P(j,:,i));
     end
 end
+%}
 
+% And replaced by:
+%{
+hmm.P = get_Aij(Eijt);
+hmm.P(hmm.P < 0) = 0;
+hmm.Dir2d_alpha = hmm.P .* hmm.prior.Dir2d_alpha;
+hmm.Dir2d_alpha(hmm.Dir2d_alpha < 0) = 0;
+
+% ---------- Also: ------------------ %
+
+hmm.Pi = Gamma(1,:);
+hmm.Pi(hmm.Pi < 0) = 0;
+hmm.Dir_alpha = hmm.Pi .* hmm.prior.Dir_alpha;
+hmm.Dir_alpha(hmm.Dir_alpha < 0) = 0;
+
+%}
+% ----------------------------------- %
+
+% Commented by Luis and replaced by the 2 lines from above.
+%
 % initial state
 if Q==1, hmm.Dir_alpha = hmm.prior.Dir_alpha;
 else, hmm.Dir_alpha = repmat(hmm.prior.Dir_alpha',[1 Q]); 
@@ -99,5 +122,6 @@ else
         hmm.Pi(:,i) = hmm.Pi(:,i) ./ sum(hmm.Pi(:,i));
     end
 end
+
 
 end

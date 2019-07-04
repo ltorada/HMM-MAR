@@ -15,17 +15,29 @@ function hmm = hmmhsinit(hmm,GammaInit,T)
 % end
 Q = 1; 
 
+% --------------- Added by Luis ------------- %
+
+% Initialize sojourn distributions with uniform distribution.
+%hmm.sojourns = -log(1/hmm.train.T) * ones(hmm.train.T,hmm.K); % must be (T x S).
+
+% ------------------------------------------- %
+
+
 % define P-priors
 defhmmprior=struct('Dir2d_alpha',[],'Dir_alpha',[]);
-defhmmprior.Dir_alpha = hmm.train.PriorWeightingPi * ones(1,hmm.K);
+defhmmprior.Dir_alpha = ones(1,hmm.K);
 defhmmprior.Dir_alpha(~hmm.train.Pistructure) = 0;
 defhmmprior.Dir2d_alpha = ones(hmm.K);
-defhmmprior.Dir2d_alpha(eye(hmm.K)==1) = hmm.train.DirichletDiag;
 defhmmprior.Dir2d_alpha(~hmm.train.Pstructure) = 0;
-defhmmprior.Dir2d_alpha = hmm.train.PriorWeightingP .* defhmmprior.Dir2d_alpha;
+
+for k=1:hmm.K
+    defhmmprior.Dir2d_alpha(k,k) = hmm.train.DirichletDiag;
+end
+
+defhmmprior.Dir2d_alpha=hmm.train.PriorWeighting.*defhmmprior.Dir2d_alpha;
 % assigning default priors for hidden states
 if ~isfield(hmm,'prior')
-    hmm.prior = defhmmprior;
+    hmm.prior=defhmmprior;
 else
     % priors not specified are set to default
     hmmpriorlist = fieldnames(defhmmprior);
@@ -44,8 +56,7 @@ else
     kk = hmm.train.Pistructure;
     if Q==1
         hmm.Dir_alpha = zeros(1,hmm.K);
-        hmm.Dir_alpha(kk) = hmm.train.PriorWeightingPi;
-        hmm.Dir_alpha(kk) = hmm.Dir_alpha(kk);
+        hmm.Dir_alpha(kk) = 1;
         hmm.Pi = zeros(1,hmm.K);
         hmm.Pi(kk) = ones(1,sum(kk)) / sum(kk);
     else
@@ -62,7 +73,7 @@ else
             kk = hmm.train.Pstructure(k,:);
             hmm.Dir2d_alpha(k,kk,i) = 1;
             hmm.Dir2d_alpha(k,k,i) = hmm.train.DirichletDiag;
-            hmm.Dir2d_alpha(k,kk,i) = hmm.train.PriorWeightingP .* hmm.Dir2d_alpha(k,kk,i);
+            hmm.Dir2d_alpha(k,kk,i) = hmm.train.PriorWeighting .* hmm.Dir2d_alpha(k,kk,i);
             hmm.P(k,kk,i) = hmm.Dir2d_alpha(k,kk,i) ./ sum(hmm.Dir2d_alpha(k,kk,i));
         end
     end

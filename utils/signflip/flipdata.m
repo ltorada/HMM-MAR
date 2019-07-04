@@ -21,36 +21,28 @@ if nargin<4, outputfile = []; end
 N = length(T); 
 
 if iscell(data)  
-    if isempty(outputfile) && ischar(data{1}) && ~force % check with user
-        while true
-            query = 'The result will overwrite the files, are you sure you want to continue? (0/1) ';
-            answer = input(query);
-            if answer==1 || answer==0, break; end
-            disp('Please respond 0 or 1.')
-        end
-        if answer==0
-            disp('Exiting then...')
-            return;
+    if isempty(outputfile)
+        if ischar(data{1}) && ~force % check with user
+            while true
+                query = 'The result will overwrite the files, are you sure you want to continue? (0/1) ';
+                answer = input(query);
+                if answer==1 || answer==0, break; end
+                disp('Please respond 0 or 1.')
+            end
+            if answer==0
+                disp('Exiting then...')
+                return;
+            end
         end
     end
-    if ~ischar(data{1})
-        for j = 1:N
-            data{j} = flipdata_subject(data{j},T{j},flips(j,:));
-            if ~isempty(outputfile)
-                fsub = outputfile{j};
-                writefile_sub;
-            end
+    for j = 1:N
+        fsub = data{j};
+        loadfile_sub;
+        X = flipdata_subject(X,T{j},flips(j,:));
+        if ~isempty(outputfile)
+            fsub = outputfile{j};
         end
-    else
-        for j = 1:N
-            fsub = data{j};
-            loadfile_sub;
-            X = flipdata_subject(X,T{j},flips(j,:));
-            if ~isempty(outputfile)
-                fsub = outputfile{j};
-            end
-            writefile_sub;
-        end
+        writefile_sub;
     end
 else
     ndim = size(data,2);

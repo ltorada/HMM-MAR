@@ -1,4 +1,4 @@
-function [hmm,Gamma,vpath] = hmmdual(data,T,hmm,Gamma,Xi,residuals)
+function [hmm,Gamma] = hmmdual(data,T,hmm,Gamma,Xi,residuals)
 %
 % Dual estimation of the HMM
 %
@@ -14,7 +14,6 @@ function [hmm,Gamma,vpath] = hmmdual(data,T,hmm,Gamma,Xi,residuals)
 % OUTPUTS
 % hmm           estimated HMMMAR model
 % Gamma         estimated p(state | data)
-% vpath            estimated Viterbi path
 %
 % Author: Diego Vidaurre, OHBA, University of Oxford (2019)
 
@@ -103,7 +102,7 @@ if isempty(residuals)
 end
 
 
-if isempty(Gamma) || isempty(Xi)  
+if isempty(Gamma) || isempty(Xi)
     [Gamma,~,Xi] = hsinference(data,T,hmm,residuals); 
 end
 setxx;
@@ -111,12 +110,7 @@ setxx;
 hmm = obsupdate(T,Gamma,hmm,residuals,XX,XXGXX);
 hmm = hsupdate(Xi,Gamma,T,hmm);
 
-if nargout > 1
-    Gamma = hsinference(data,T,hmm,residuals);
-end
-if nargout > 2
-    vpath = hmmdecode(data,T,hmm,1,residuals,0);
-end
+Gamma = hsinference(data,T,hmm,residuals); 
 
 end
 

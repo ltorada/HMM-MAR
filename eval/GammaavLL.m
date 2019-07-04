@@ -5,6 +5,8 @@ function avLL = GammaavLL(hmm,Gamma,Xi,T)
 % else
 %     Q = 1;
 % end
+
+
 Q = 1; 
 N = length(T); 
 order = (sum(T) - size(Gamma,1))/N;
@@ -63,5 +65,6 @@ for i = 1:Q
         end
     end
 end
+
 
 end

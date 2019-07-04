@@ -319,7 +319,6 @@ else
     else % Gamma specified
         if ~isempty(options.hmm)
            warning('options.hmm will not be used because options.Gamma was specified') 
-           options.hmm = [];
         end
         % hmm unspecified, or both specified
         GammaInit = options.Gamma;
@@ -403,15 +402,22 @@ else
     
     if options.decodeGamma && nargout >= 4
         
-        vpath = hmmdecode(data.X,T,hmm,1,residuals,0);
-        if ~options.keepS_W
-            for i=1:hmm.K
-                hmm.state(i).W.S_W = [];
+        %--------------------------------------------%
+        if options.hsmm == 1
+            [vpath] = wrapped_Viterbi(hmm, hmm.L);
+        else
+        %--------------------------------------------%
+            vpath = hmmdecode(data.X,T,hmm,1,residuals,0);
+            if ~options.keepS_W
+                for i=1:hmm.K
+                    hmm.state(i).W.S_W = [];
+                end
             end
-        end
+        end        
     else
         vpath = ones(size(Gamma,1),1);
     end
+    
     hmm.train = rmfield(hmm.train,'Sind');
     
     feterms = []; rho = [];
